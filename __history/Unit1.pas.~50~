@@ -1,0 +1,172 @@
+unit Unit1;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.FileCtrl;
+
+type
+  TForm1 = class(TForm)
+    Button1: TButton;
+    Button2: TButton;
+    Label1: TLabel;
+    FileListBox1: TFileListBox;
+    Button3: TButton;
+    procedure Button1Click(Sender: TObject);
+    procedure FileListBox1Change(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+    procedure Button3Click(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormClick(Sender: TObject);
+    procedure FormActivate(Sender: TObject);
+
+
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+
+  end;
+
+var
+  Form1: TForm1;
+
+const
+    extension = '.txt';  //расширение файла
+
+implementation
+
+{$R *.dfm}
+
+uses Unit2;
+
+//Добавить
+procedure TForm1.Button1Click(Sender: TObject);
+var
+  path : string;      //путь к папке
+  file_name : string; //имя файла
+ // F    : TextFile;
+  name : string;
+  i : integer;
+begin
+  path := 'C:\Notes\';
+  file_name := 'New_Note1';
+  i := 1;
+
+  Form2.Memo1.Clear;   // очистим поле редактирования текста на форме редактирования
+  Form2.Show;          //вызов формы редактирования
+
+  Form2.Edit1.Text := file_name;    //передаем в форму редактирования имя файла
+
+  //Проверяем есть ли файл с таким именем
+  if (FileExists(path + Form2.Edit1.Text + extension) = True) then
+  begin
+//   i:= i+1;
+    while (StrToInt(Form2.Edit1.Text[Length(Form2.Edit1.Text)]) = i) and (FileExists(path + Form2.Edit1.Text + extension) = True) do
+    begin
+
+      name := Form2.Edit1.Text;
+      i := StrToInt(name[Length(name)]) + 1;  //увеличиваем значение числовой приставки в имени
+      Delete(name, Length(name),1);    //удалим последний номер заметки
+      ShowMessage(name);
+      name := name + i.ToString;      //и заменим его на +1
+      Form2.Edit1.Text := name;       //запишем в поле названя заметки
+    end;
+//  ShowMessage(i.ToString + ' ' + (name[Length(name)]));
+    if StrToInt(name[Length(name)]) = 0 then
+    begin
+       // i := 0;
+       // ShowMessage(i.ToString + ' ' + (name[Length(name)]));
+    end;
+  end;
+
+ //    AssignFile (F, path + Form2.Edit1.Text + extension);   //создаем заметку
+//    ReWrite (F);
+//    CloseFile (F);
+//   Form2.Save;
+ // end;
+//  else
+//    AssignFile (F, path + file_name + extension);   //создаем заметку при первом использовании приложения
+//    ReWrite (F);
+//    CloseFile (F);
+
+  FileListBox1.Update;  //обновим данные о заметках в папке
+
+end;
+
+//Редактировать
+procedure TForm1.Button2Click(Sender: TObject);
+var
+name : string;
+begin
+  Form2.Show;
+
+   //Исключаем отсутствие заметок
+  if FileListBox1.ItemIndex<0 then exit;
+
+  //Откроем в форме редактирования выбранную заметку
+  Form2.Memo1.Lines.LoadFromFile(
+    FileListBox1.Directory+'\'+FileListBox1.Items[FileListBox1.ItemIndex]
+  );
+
+  //Название файла загрузим в форму редактирования
+  name := FileListBox1.Items[FileListBox1.ItemIndex]; //загрузим имя.расш выбранной заметки
+  Delete(name, Pos('.', name), Length(name));         //удалим расширение
+  Form2.Edit1.Text := name;                          //запишем в форму редактирования имя файла
+
+  FileListBox1.Update;  //обновим данные о заметках в папке
+end;
+
+//Удаление
+procedure TForm1.Button3Click(Sender: TObject);
+var
+  rezult : TModalResult;
+  path : string;
+begin
+  path := 'C:\Notes';
+
+  rezult := MessageDlg('Вы уверены, что хотите удалить заметку?',mtCustom,[mbOk, mbCancel],0);
+  if rezult = mrOk then
+  begin
+    DeleteFile(FileListBox1.Directory+'\'+FileListBox1.Items[FileListBox1.ItemIndex]);
+    FileListBox1.Update;   //обновим данные о заметках в папке
+    //ShowMessage('Заметка успешно удалена!');
+  end;
+end;
+
+procedure TForm1.FileListBox1Change(Sender: TObject);
+var
+  path : string;
+  path_file : string;
+  F    : TextFile;
+begin
+//Объявим путь к папке с заметками (для удобства дальнейшего изменения пути)
+  path := 'C:\Notes';
+  path_file := 'C:\Notes\Hello_User.txt';
+
+  //ВЫводим только файлы с раширением .txt
+  FileListBox1.Mask := '*.txt';
+
+//Проверим наличие папки Notes и приветственного файла в системе, если их нет, то создадим
+  if DirectoryExists(path) = False and FileExists(path_file) = False then
+  begin
+    CreateDir(path);    //создаем папку
+    AssignFile (F, path_file);   //создаем заметку при первом использовании приложения
+    ReWrite (F);
+    writeln (F, 'Hello, Dear user!');
+    writeln (F, 'Thank You  for choosing our app!');
+    CloseFile (F);
+  end;
+
+   FileListBox1.Directory := path; //открываем список файлов
+
+end;
+
+//По умолчанию выбираем первую запись из списка заметок
+procedure TForm1.FormActivate(Sender: TObject);
+begin
+  FileListBox1.SetFocus;
+end;
+
+end.
